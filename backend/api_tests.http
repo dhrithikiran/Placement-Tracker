@@ -1,0 +1,87 @@
+##############################################
+# 🧪 BACKEND API TESTS – Placement Tracker
+# Base URL: http://localhost:4000
+##############################################
+
+### 1️⃣ Create Student
+POST http://localhost:4000/api/students
+Content-Type: application/json
+
+{
+  "Name": "Aarav Sharma",
+  "Email": "aarav.sharma@example.com",
+  "Phone": "9876543210",
+  "Degree": "B.Tech",
+  "Branch": "CSE"
+}
+
+### 2️⃣ Get All Students
+GET http://localhost:4000/api/students
+
+
+### 3️⃣ Create Company
+POST http://localhost:4000/api/companies
+Content-Type: application/json
+
+{
+  "Company_Name": "InnovateX Labs",
+  "Industry": "AI Research",
+  "Location": "Bangalore"
+}
+
+### 4️⃣ Get All Companies
+GET http://localhost:4000/api/companies
+
+
+### 5️⃣ Create Job Position
+POST http://localhost:4000/api/positions
+Content-Type: application/json
+
+{
+  "Company_ID": 1,
+  "Role": "Machine Learning Engineer Intern",
+  "Eligibility": "CSE/AI Students with CGPA > 7",
+  "Package": 20000.00,
+  "Min_CGPA": 7.0,
+  "Max_Backlogs": 0
+}
+
+### 6️⃣ Get All Positions
+GET http://localhost:4000/api/positions
+
+
+### 7️⃣ Apply for a Job
+POST http://localhost:4000/api/apply
+Content-Type: application/json
+
+{
+  "Student_ID": 1,
+  "Position_ID": 1
+}
+
+
+### 8️⃣ Schedule Interview
+POST http://localhost:4000/api/schedule_interview
+Content-Type: application/json
+
+{
+  "Application_ID": 1,
+  "Round_Number": 1,
+  "Date_Time": "2025-11-10 10:00:00",
+  "Mode": "Online"
+}
+
+
+### 9️⃣ Get All Interviews
+GET http://localhost:4000/api/interviews
+
+### 9️⃣ Create Offer
+POST http://localhost:4000/api/generate_offer
+Content-Type: application/json
+
+{
+  "Application_ID": 1,
+  "Company_ID": 1,
+  "Position_ID": 1,
+  "Package": 15000.00
+}

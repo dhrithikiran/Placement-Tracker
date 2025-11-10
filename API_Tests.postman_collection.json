@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "MLHackathonAPI Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "item": [
+    {
+      "name": "1 - Create Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_name\": \"Riya Mehta\",\n  \"branch_id\": 1,\n  \"email\": \"riya.mehta@example.com\",\n  \"phone\": \"9876543210\",\n  \"gpa\": 8.6,\n  \"class_10_percentage\": 92.5,\n  \"class_12_percentage\": 89.3\n}"
+        },
+        "url": {
+          "raw": "{{baseURL}}/students",
+          "host": ["{{baseURL}}"],
+          "path": ["students"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 201 or 200\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200,201]);",
+              "});",
+              "",
+              "try {",
+              "    var json = pm.response.json();",
+              "    // common id field names: student_id, id, insertId, data.student_id",
+              "    var sid = json.student_id || json.id || (json.data && json.data.student_id) || json.insertId || (Array.isArray(json) && json[0] && json[0].student_id);",
+              "    if (sid) { pm.environment.set(\"student_id\", sid); }",
+              "} catch(e) { console.log('no-json-response or parse error', e); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Get All Students",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseURL}}/students",
+          "host": ["{{baseURL}}"],
+          "path": ["students"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON array\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(Array.isArray(json)).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Create Company",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_name\": \"TechNova\",\n  \"description\": \"Innovative software development firm\",\n  \"industry\": \"IT Services\"\n}"
+        },
+        "url": { "raw": "{{baseURL}}/companies", "host": ["{{baseURL}}"], "path": ["companies"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 201 or 200\", function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+              "try {",
+              "  var json = pm.response.json();",
+              "  var cid = json.company_id || json.id || (json.data && json.data.company_id) || json.insertId;",
+              "  if (cid) pm.environment.set('company_id', cid);",
+              "} catch(e){console.log(e)}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Create Position",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": {{company_id}},\n  \"job_title\": \"Software Engineer Intern\",\n  \"description\": \"Work on backend APIs and data models\",\n  \"required_gpa\": 7.5,\n  \"compensation\": \"60000\"\n}"
+        },
+        "url": { "raw": "{{baseURL}}/positions", "host": ["{{baseURL}}"], "path": ["positions"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 201 or 200\", function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+              "try {",
+              "  var json = pm.response.json();",
+              "  var pid = json.position_id || json.id || (json.data && json.data.position_id) || json.insertId;",
+              "  if (pid) pm.environment.set('position_id', pid);",
+              "} catch(e){console.log(e)}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Apply for Position",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_id\": {{student_id}},\n  \"position_id\": {{position_id}},\n  \"application_date\": \"2025-11-04\"\n}"
+        },
+        "url": { "raw": "{{baseURL}}/apply", "host": ["{{baseURL}}"], "path": ["apply"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 201 or 200\", function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+              "try {",
+              "  var json = pm.response.json();",
+              "  var aid = json.application_id || json.id || (json.data && json.data.application_id) || json.insertId;",
+              "  if (aid) pm.environment.set('application_id', aid);",
+              "} catch(e){console.log(e)}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Schedule Interview",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"application_id\": {{application_id}},\n  \"interview_date\": \"2025-11-07\",\n  \"interviewer_details\": \"HR: Anjali Sharma (anjali@technova.com)\"\n}"
+        },
+        "url": { "raw": "{{baseURL}}/schedule_interview", "host": ["{{baseURL}}"], "path": ["schedule_interview"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 201 or 200\", function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -160,8 +160,31 @@ INSERT INTO Academic_Record (Student_ID, CGPA, Backlogs) VALUES
 (1, 8.1, 0), (2, 7.2, 0), (3, 7.8, 0), (4, 6.9, 1), (5, 8.5, 0),
 (6, 8.0, 0), (7, 7.9, 0), (8, 8.2, 0), (9, 7.6, 0);
 
-INSERT INTO Offer(Application_ID, Company_ID, Position_ID, Package, Offer_Status) VALUES 
-(p_Application_ID, v_Company_ID, v_Position_ID, v_Package, 'Pending')
+-- Sample Applications
+INSERT INTO Application_Status (Student_ID, Position_ID, Current_Status) VALUES
+(1, 1, 'Applied'),
+(2, 1, 'Applied'),
+(3, 2, 'Applied'),
+(4, 3, 'Applied'),
+(5, 4, 'Applied'),
+(6, 5, 'Applied'),
+(7, 6, 'Applied'),
+(8, 4, 'Applied');
+
+-- Sample Interviews
+INSERT INTO Interview (Application_ID, Round_Number, Date_Time, Mode, Result) VALUES
+(1, 1, '2025-11-10 10:00:00', 'Online', 'Pending'),
+(2, 1, '2025-11-11 11:00:00', 'Online', 'Pending'),
+(3, 1, '2025-11-12 14:00:00', 'Offline', 'Pending'),
+(4, 1, '2025-11-13 09:00:00', 'Online', 'Pending'),
+(5, 1, '2025-11-14 15:00:00', 'Hybrid', 'Pending'),
+(6, 1, '2025-11-15 16:00:00', 'Offline', 'Pending');
+
+
+-- Sample Offers
+INSERT INTO Offer (Application_ID, Company_ID, Position_ID, Package, Offer_Status) VALUES
+(1, 1, 1, 20000.00, 'Pending'),
+(2, 1, 1, 22000.00, 'Pending');
 
 -- =====================================================
 -- FUNCTIONS
@@ -443,6 +466,106 @@ END$$
 DELIMITER ;
 
 -- =====================================================
+-- ADDITIONAL FUNCTION (as per checklist)
+-- =====================================================
+
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS GetEligibleCompanies$$
+CREATE FUNCTION GetEligibleCompanies(p_Student_ID INT)
+RETURNS JSON
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE eligible_companies JSON;
+
+    SELECT JSON_ARRAYAGG(DISTINCT c.Company_Name)
+    INTO eligible_companies
+    FROM Academic_Record ar
+    JOIN Application_Status a ON a.Student_ID = ar.Student_ID
+    JOIN Job_Position jp ON jp.Position_ID = a.Position_ID
+    JOIN Company c ON c.Company_ID = jp.Company_ID
+    WHERE ar.Student_ID = p_Student_ID
+       OR (
+            ar.Student_ID = p_Student_ID
+            AND jp.Is_Active = TRUE
+            AND ar.CGPA >= jp.Min_CGPA
+            AND ar.Backlogs <= jp.Max_Backlogs
+       );
+
+    RETURN COALESCE(eligible_companies, JSON_ARRAY());
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- ADDITIONAL PROCEDURES (as per checklist)
+-- =====================================================
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS UpdateApplicationStatus$$
+CREATE PROCEDURE UpdateApplicationStatus(
+    IN p_Application_ID INT,
+    IN p_New_Status VARCHAR(30)
+)
+BEGIN
+    DECLARE app_exists INT;
+    -- Validate application
+    SELECT COUNT(*) INTO app_exists
+    FROM Application_Status
+    WHERE Application_ID = p_Application_ID;
+
+    IF app_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Application ID does not exist';
+    END IF;
+
+    -- Basic validation of status
+    IF p_New_Status NOT IN ('Applied','Not Eligible','Interview Scheduled','Under Review','Offered','Accepted','Rejected','Withdrawn') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid application status';
+    END IF;
+
+    UPDATE Application_Status
+    SET Current_Status = p_New_Status
+    WHERE Application_ID = p_Application_ID;
+
+    SELECT 'Application status updated' AS Message;
+END$$
+
+DROP PROCEDURE IF EXISTS UpdateInterviewResult$$
+CREATE PROCEDURE UpdateInterviewResult(
+    IN p_Interview_ID INT,
+    IN p_Result VARCHAR(20)
+)
+BEGIN
+    DECLARE int_exists INT;
+    -- Validate interview
+    SELECT COUNT(*) INTO int_exists
+    FROM Interview
+    WHERE Interview_ID = p_Interview_ID;
+
+    IF int_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Interview ID does not exist';
+    END IF;
+
+    IF p_Result NOT IN ('Pending','Passed','Failed','Cancelled') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid interview result';
+    END IF;
+
+    UPDATE Interview
+    SET Result = p_Result
+    WHERE Interview_ID = p_Interview_ID;
+
+    SELECT 'Interview result updated' AS Message;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
 -- TRIGGERS
 -- =====================================================
 
@@ -455,30 +578,27 @@ FOR EACH ROW
 BEGIN
     DECLARE v_Student_ID INT;
 
+    -- Check if the offer status is being updated to 'Accepted'
     IF NEW.Offer_Status = 'Accepted' AND OLD.Offer_Status != 'Accepted' THEN
-        -- Update response date
-        UPDATE Offer 
-        SET Response_Date = CURRENT_TIMESTAMP
-        WHERE Offer_ID = NEW.Offer_ID;
-        
-        -- Get student ID
+        -- Retrieve the Student_ID associated with the accepted offer
+        -- Note: Response_Date is set by the backend UPDATE statement, not in trigger
         SELECT Student_ID INTO v_Student_ID
         FROM Application_Status
         WHERE Application_ID = NEW.Application_ID;
 
-        -- Update accepted application
+        -- Update the Application_Status for the accepted offer to 'Accepted'
         UPDATE Application_Status
         SET Current_Status = 'Accepted'
         WHERE Application_ID = NEW.Application_ID;
 
-        -- Withdraw other applications
+        -- Withdraw all other applications for the same student, except those that are already Accepted, Rejected, or Withdrawn
         UPDATE Application_Status
         SET Current_Status = 'Withdrawn'
         WHERE Student_ID = v_Student_ID
           AND Application_ID != NEW.Application_ID
           AND Current_Status NOT IN ('Accepted', 'Rejected', 'Withdrawn');
         
-        -- Add comment
+        -- Add a comment to the Application_Status record indicating that the offer was accepted
         INSERT INTO Comment (Application_ID, Comment_Text)
         VALUES (NEW.Application_ID, 'Offer accepted by student');
     END IF;
@@ -542,6 +662,59 @@ FROM Student s
 LEFT JOIN Application_Status a ON s.Student_ID = a.Student_ID
 LEFT JOIN Offer o ON a.Application_ID = o.Application_ID;
 
+-- Optional: views with names matching checklist
+CREATE OR REPLACE VIEW PlacementStatsByBranch AS
+SELECT 
+    s.Branch,
+    COUNT(DISTINCT s.Student_ID) AS Total_Students,
+    COUNT(DISTINCT CASE 
+        WHEN a.Current_Status IN ('Offered', 'Accepted') 
+        THEN a.Student_ID 
+    END) AS Students_With_Offers,
+    ROUND(COUNT(DISTINCT CASE 
+        WHEN a.Current_Status IN ('Offered', 'Accepted') 
+        THEN a.Student_ID 
+    END) * 100.0 / COUNT(DISTINCT s.Student_ID), 2) AS Placement_Percentage,
+    COUNT(DISTINCT a.Application_ID) AS Total_Applications,
+    ROUND(AVG(CASE 
+        WHEN o.Offer_Status IN ('Pending', 'Accepted') 
+        THEN o.Package 
+    END), 2) AS Avg_Package_Offered,
+    MAX(o.Package) AS Highest_Package
+FROM Student s
+LEFT JOIN Application_Status a ON s.Student_ID = a.Student_ID
+LEFT JOIN Offer o ON a.Application_ID = o.Application_ID
+GROUP BY s.Branch
+ORDER BY Placement_Percentage DESC, Students_With_Offers DESC;
+
+CREATE OR REPLACE VIEW CompanyPlacementReport AS
+SELECT 
+    c.Company_Name,
+    c.Industry,
+    c.Location,
+    COUNT(DISTINCT jp.Position_ID) AS Total_Positions,
+    COUNT(DISTINCT CASE 
+        WHEN jp.Is_Active = TRUE 
+        THEN jp.Position_ID 
+    END) AS Active_Positions,
+    COUNT(DISTINCT a.Application_ID) AS Total_Applications,
+    COUNT(DISTINCT CASE 
+        WHEN o.Offer_Status = 'Accepted' 
+        THEN o.Offer_ID 
+    END) AS Offers_Accepted,
+    COUNT(DISTINCT CASE 
+        WHEN o.Offer_Status = 'Pending' 
+        THEN o.Offer_ID 
+    END) AS Offers_Pending,
+    ROUND(AVG(jp.Package), 2) AS Avg_Package_Offered,
+    MAX(jp.Package) AS Highest_Package
+FROM Company c
+LEFT JOIN Job_Position jp ON c.Company_ID = jp.Company_ID
+LEFT JOIN Application_Status a ON jp.Position_ID = a.Position_ID
+LEFT JOIN Offer o ON a.Application_ID = o.Application_ID
+GROUP BY c.Company_ID, c.Company_Name, c.Industry, c.Location
+ORDER BY Offers_Accepted DESC, Total_Applications DESC;
+
 -- =====================================================
 -- TESTING & VALIDATION
 -- =====================================================
@@ -569,7 +742,7 @@ SELECT * FROM vw_placement_summary;
 SELECT * FROM Student; 
 SELECT * FROM Academic_Record; 
 
-CALL GenerateOffer(3);
+CALL GenerateOffer(1);
 
 SELECT CheckEligibility(1,1) AS EligibilityStatus;
 
@@ -583,5 +756,3 @@ UPDATE Offer SET Offer_Status = 'Accepted' WHERE Offer_ID=1;
 SELECT * FROM Application_Status WHERE Student_ID = (
 SELECT Student_ID FROM Application_Status WHERE Application_ID = 1
 );
-
-
