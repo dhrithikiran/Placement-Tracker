@@ -1,11 +1,12 @@
 // ./db.js
+require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'root',
-  password: 'Mi8105119@!!@', // ✅ update if needed
-  database: 'placement_tracker',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'placement_tracker',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

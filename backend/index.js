@@ -386,6 +386,13 @@ app.put('/api/interviews/:id', async (req, res) => {
         }
       }
     }
+    // If result is Failed, update application status to Rejected
+    if (Result === 'Failed') {
+      await pool.query(
+        'UPDATE Application_Status SET Current_Status = "Rejected" WHERE Application_ID = (SELECT Application_ID FROM Interview WHERE Interview_ID = ?)',
+        [interviewId]
+      );
+    }
     const payload = Array.isArray(rows) && rows.length > 0 ? rows[0][0] : { message: 'Interview updated' };
     res.json(payload);
   } catch (err) {

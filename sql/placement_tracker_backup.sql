@@ -466,20 +466,20 @@ END$$
 DELIMITER ;
 
 -- =====================================================
--- ADDITIONAL FUNCTION (as per checklist) - CORRECTED FOR MYSQL 5.6+
+-- ADDITIONAL FUNCTION (as per checklist)
 -- =====================================================
 
 DELIMITER $$
 
 DROP FUNCTION IF EXISTS GetEligibleCompanies$$
 CREATE FUNCTION GetEligibleCompanies(p_Student_ID INT)
-RETURNS TEXT
+RETURNS JSON
 DETERMINISTIC
 READS SQL DATA
 BEGIN
-    DECLARE eligible_companies TEXT;
+    DECLARE eligible_companies JSON;
 
-    SELECT GROUP_CONCAT(DISTINCT c.Company_Name SEPARATOR ',')
+    SELECT JSON_ARRAYAGG(DISTINCT c.Company_Name)
     INTO eligible_companies
     FROM Academic_Record ar
     JOIN Application_Status a ON a.Student_ID = ar.Student_ID
@@ -493,7 +493,7 @@ BEGIN
             AND ar.Backlogs <= jp.Max_Backlogs
        );
 
-    RETURN COALESCE(eligible_companies, '');
+    RETURN COALESCE(eligible_companies, JSON_ARRAY());
 END$$
 
 DELIMITER ;

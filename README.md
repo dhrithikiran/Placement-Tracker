@@ -1,171 +1,245 @@
-Placement Tracker — Full Stack Project
-=====================================
+# Placement Tracker – Full Stack Placement Management System
 
-Overview
---------
-Placement Tracker is a full‑stack app to manage campus placements end‑to‑end:
-- MySQL database with procedures, function, triggers, and views
-- Node.js + Express backend
-- React frontend (Create React App) with Bootstrap styling
+## Project Overview
 
-Key Features
-------------
-- Student, Company, Job Position, Application, Interview, Offer management
-- Eligibility checks on application (CGPA and Backlogs)
-- Auto-generate offer on interview Passed
-- Accepting an offer withdraws other applications (trigger)
-- Reports: Branch statistics and Company report
+Placement Tracker is a full-stack web application designed to streamline campus placement operations by providing a centralized platform for managing students, companies, applications, interviews, and offers.
 
-Project Structure
------------------
-```
+The system addresses the challenges faced by placement cells when handling large volumes of placement-related activities through spreadsheets and disconnected workflows. By automating key processes and enforcing business rules at the database level, Placement Tracker improves efficiency, reduces manual errors, and provides better visibility into the placement process.
+
+> **Current Scope:** This application is designed primarily for placement cell administrators. Student-facing functionality is identified as future work.
+
+---
+
+## Key Features
+
+### Company and Position Management
+
+* Add and manage recruiting companies.
+* Create and maintain job positions with eligibility criteria.
+* Track available opportunities centrally.
+
+### Student and Application Tracking
+
+* Maintain student profiles and academic records.
+* Monitor applications throughout the placement lifecycle.
+* Enforce eligibility checks using CGPA and backlog requirements.
+
+### Interview Scheduling and Tracking
+
+* Schedule interviews for shortlisted candidates.
+* Track interview outcomes.
+* Automatically update application states based on interview results.
+
+### Offer Management
+
+* Generate offers for successful candidates.
+* Accept or reject offers.
+* Automatically withdraw competing applications when an offer is accepted.
+
+### Reporting and Insights
+
+* Branch-wise placement statistics.
+* Company placement reports.
+* Placement summary views.
+
+### Demo-Ready Experience
+
+* Includes pre-seeded sample data for students, companies, positions, and applications to enable immediate testing and evaluation.
+
+---
+
+## System Workflow
+
+A typical placement workflow consists of the following steps:
+
+1. Placement officers add students and academic records.
+2. Companies and job positions are created with eligibility criteria.
+3. Eligible students apply for positions.
+4. Interviews are scheduled for shortlisted candidates.
+5. Interview outcomes are recorded.
+6. Successful interviews generate offers automatically.
+7. Students accept or reject offers.
+8. Acceptance triggers withdrawal of competing applications.
+9. Placement officers monitor progress through reports and trackers.
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* React (Create React App)
+* Bootstrap
+
+### Backend
+
+* Node.js
+* Express.js
+
+### Database
+
+* MySQL 8
+
+### Additional Libraries
+
+* mysql2
+* dotenv
+* nodemon
+
+---
+
+## Project Structure
+
+```text
 placement-tracker/
-├── sql/placement_tracker.sql             # Database schema, seed data, procs, triggers, views
-├── backend/                              # Node + Express API
-│   ├── index.js
-│   ├── db.js
-│   ├── package.json
-│   └── ...
-├── frontend/                             # React app
-│   ├── src/
-│   ├── public/
-│   └── package.json
-├── report/                               # Optional: final report & screenshots
+├── sql/
+│   └── placement_tracker.sql
+├── backend/
+├── frontend/
+├── report/
 └── README.md
 ```
 
-Prerequisites
--------------
-- Node.js 18+ and npm
-- MySQL 8.x
+---
 
-1) Database Setup
------------------
-1. Start MySQL and create the database by running the SQL:
-   - From a terminal:
-     ```
-     mysql -u root -p < sql/placement_tracker.sql
-     ```
-     This creates database `placement_tracker`, tables, sample data, stored procedures, function, triggers, and views.
-2. Verify:
-   - `SELECT COUNT(*) FROM placement_tracker.Student;`
-   - `SELECT * FROM placement_tracker.Offer;`
+## Installation & Running the Project
 
-2) Backend Setup
-----------------
-1. Configure DB connection in `backend/db.js` if needed:
-   ```
-   host: '127.0.0.1',
-   user: 'root',
-   password: 'YOUR_PASSWORD',
-   database: 'placement_tracker'
-   ```
-2. Install and run:
-   ```
-   cd backend
-   npm install
-   npm run dev         # or: npm start
-   ```
-3. Expected logs:
-   - `✓ Database connected successfully`
-   - `✓ Backend server running on port 4000`
+### Prerequisites
 
-3) Frontend Setup
------------------
-1. Install and run:
-   ```
-   cd frontend
-   npm install
-   npm start
-   ```
-2. Open `http://localhost:3000`
+* Node.js 18+
+* npm
+* MySQL 8.x
 
-Core API Endpoints (Summary)
-----------------------------
-- Students:
-  - GET `/api/students`
-  - POST `/api/students` (also creates academic record if CGPA/Backlogs provided)
-  - PUT `/api/students/:id` (updates academic record if CGPA/Backlogs provided)
-  - DELETE `/api/students/:id`
-- Academic Records:
-  - GET `/api/academic-records`
-  - POST `/api/academic-records`
-  - PUT `/api/academic-records/:studentId`
-- Positions / Companies:
-  - GET `/api/positions`, POST `/api/positions`
-  - GET `/api/companies`, POST `/api/companies`
-- Applications:
-  - GET `/api/applications`
-  - POST `/api/apply` (eligibility enforced)
-  - POST `/api/applications` (stored procedure ApplyForPosition)
-- Interviews:
-  - GET `/api/interviews`
-  - POST `/api/schedule_interview`
-  - PUT `/api/interviews/:id` (set result Passed/Failed; Passed auto‑generates offer)
-  - DELETE `/api/interviews/:id`
-- Offers:
-  - GET `/api/offers`
-  - POST `/api/generate_offer/:applicationId` (generate by application)
-  - PUT `/api/offer/:id/accept` (fires trigger to withdraw other applications)
-  - PUT `/api/offer/:id/reject`
-- Reports:
-  - GET `/api/report/branch_stats`
-  - GET `/api/report/company`
+---
 
-Database Logic
---------------
-- Function:
-  - `CheckEligibility(studentId, positionId)` — used by `/api/apply`
-- Procedures:
-  - `ApplyForPosition`, `ScheduleInterview`, `GenerateOffer`,
-    `GetPlacementStatsByBranch`, `GetCompanyPlacementReport`, `UpdateInterviewResult`, `UpdateApplicationStatus`
-- Trigger:
-  - `after_offer_accepted` — on offer Accepted:
-    - Sets the application to Accepted
-    - Withdraws other applications for the same student
-    - Inserts a comment
-- Views:
-  - `vw_active_applications`, `vw_placement_summary`, plus named views:
-    - `PlacementStatsByBranch`, `CompanyPlacementReport`
+### Database Setup
 
-Typical Demo Flow
------------------
-1. Add a Student (with CGPA and Backlogs)
-2. Apply for a Position from Dashboard (eligibility enforced)
-3. Schedule Interview (status becomes “Interview Scheduled”)
-4. Mark interview “Passed” (auto‑generates Pending offer)
-5. Accept the offer (trigger withdraws other applications)
-6. View reports under the Reports tab
+Import the database schema and seed data:
 
-Troubleshooting
----------------
-- Offers not appearing:
-  - Ensure interviews are marked “Passed”
-  - Use: `POST /api/maintenance/generate_offers_for_passed`
-  - Check: `GET /api/offers`
-- Accept offer fails with DB error:
-  - Make sure the SQL trigger `after_offer_accepted` is up‑to‑date (no UPDATE on Offer inside the trigger).
-  - Re-run `sql/placement_tracker.sql`.
-- Eligibility not enforced:
-  - Ensure students have academic records (CGPA, Backlogs)
-  - `/api/apply` uses `CheckEligibility` and returns reason when Not Eligible
-
-Screenshots & Report (optional)
--------------------------------
-Place screenshots and a PDF report in:
-```
-report/
-├── Placement_Tracker_Report.pdf
-└── screenshots/
-    ├── db_schema.png
-    ├── trigger_demo.png
-    ├── frontend_dashboard.png
-    ├── offer_management.png
-    └── placement_report.png
+```bash
+mysql -u root -p < sql/placement_tracker.sql
 ```
 
-License
--------
-For academic use. Customize as needed for your submission. 
+This initializes:
 
+* Database schema
+* Tables
+* Stored procedures
+* Functions
+* Triggers
+* Views
+* Sample data
 
+---
+
+### Backend Setup
+
+Create a `.env` file inside the `backend` folder:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=YOUR_PASSWORD
+DB_NAME=placement_tracker
+```
+
+Install dependencies and start the server:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Expected output:
+
+```text
+✓ Database connected successfully
+✓ Backend server running on port 4000
+```
+
+---
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Access the application at:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## Demo/Test Data
+
+The project includes pre-inserted sample records to facilitate quick evaluation without requiring manual setup.
+
+Sample datasets include:
+
+* Students
+* Companies
+* Job Positions
+* Applications
+* Interviews
+* Offers
+
+---
+
+## Collaborators
+
+* Bhanavi D Reddy
+
+---
+
+## Future Enhancements
+
+### Role-Based Access Control
+
+* Separate placement office and student portals.
+* Permission-based functionality.
+
+### Student Portal
+
+* Student authentication.
+* View opportunities.
+* Apply for positions.
+* Accept or reject offers.
+* Track application progress.
+
+### Position Management Improvements
+
+* Track remaining open positions.
+* Automatically archive positions once vacancies are filled.
+
+### Placement Office Enhancements
+
+* Enhanced application tracker.
+* Improved interview scheduler and tracker.
+* Student progress dashboards.
+* Better usability and workflow support.
+
+### Reporting Improvements
+
+* Standardized statuses and metrics.
+* Advanced analytics and placement trends.
+* Exportable reports.
+
+---
+
+## Conclusion
+
+Placement Tracker demonstrates how full-stack technologies and database-driven business rules can be combined to digitize and streamline campus recruitment workflows. By automating repetitive tasks, enforcing placement policies, and providing actionable insights, the system offers a practical foundation for modern placement management.
+
+The project highlights real-world concepts including workflow automation, relational database design, trigger-based state management, RESTful API development, and responsive frontend integration.
+
+---
+
+## License
+
+This project was developed for academic purposes and can be extended or customized for institutional use.
