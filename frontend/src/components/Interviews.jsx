@@ -102,7 +102,11 @@ const Interviews = ({ setActiveTab }) => {
                       >
                         Mark Passed
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => setResult(iv.Interview_ID, 'Failed')}>Mark Failed</button>
+                      <button className="btn btn-sm btn-danger" onClick={async () => {
+                        await setResult(iv.Interview_ID, 'Failed');
+                        // Small delay to update status; then go to Applications
+                        setTimeout(() => setActiveTab && setActiveTab('applications'), 300);
+                      }}>Mark Failed</button>
                       <button className="btn btn-sm btn-outline-danger" onClick={() => deleteInterview(iv.Interview_ID)}>Delete</button>
                     </div>
                   </td>

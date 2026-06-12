@@ -19,7 +19,7 @@ function App() {
       case 'applications':
         return <ApplicationTracker />;
       case 'offers':
-        return <OfferManagement />;
+        return <OfferManagement setActiveTab={setActiveTab} />;
       case 'interviews':
         return <Interviews setActiveTab={setActiveTab} />;
       case 'students':
